@@ -1,0 +1,48 @@
+DynamicRegionTracking
+
++ OpticalFlow
+
++ DepthMap
+	+ calculate coarse depth
+		+ divide frame into 16x16 ImageBlocks
+		+ for every ImageBlock classify one of the 3 Distance levels
+			# estimate Distance from clarity and contrast
+			+ clarity
+				+ get magnitude from 3x3 laplacian Matrix
+								[1	4	1]
+					- L = 1/6 *	[4	-20	4]
+								[1	4	1]
+		+ transform color space from RGB to YCbCr
+		+ correct depth with color segmentation
+			# adjacent ImageBlocks with similar colors are merged together
+	+ calculate fine depth
+		+ calculate optical flow difference image
+		+ calculate the motion history image
+			# adding half of the motion history image previously calculated to the difference image
+		+ correct distance level by using object segmentation
+			# adjacent ImageBlocks with a similar optical flow vector belong to the same object
+			# therefore update distance of those adjacent Blocks
+		+ background segmentation
+			# downsample RGB color space to 27 bins
+			# 3 bins per each channel
+			# adjacent ImageBlocks with the same color are merged together
++ FlowVector3D
+	+ for every Vector in the VectorField 
+		+ scale Vector by its Depth
++ Segmentation
+	+ set up several Bins
+		# 8 main directions
+		# 16 directions
+		# maybe 32 finer directions
+	+ iterate over the VectorField
+		# get the global motion and calculate the mean strength
+		+ put vector in according bins
+			# since we have different granularities of direction bins
+		+ for all possible directions in the FlowField library
+			+ check if there are vectors that fit the given direction
+			# create a fixture model of all directions that fit
+			# check if a rotation is involved and check the Field if Expansion
+	+ subtract the global motion from the FlowField
+	+ merge adjacent Regions with the same optical flow vector and similar color
+		# maybe also take History of Motion Energies in consideration
+	+ refine boundaries of adjacent Regions by checking the depth

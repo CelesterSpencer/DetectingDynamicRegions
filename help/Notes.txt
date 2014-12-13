@@ -1,0 +1,29 @@
+Setup Project
+----------------------------------------------------
+Download Microsoft Visual Studio Express
+Download Qt SDK
+Download CMake
+Download Ninja from Google
+create cmakelists and main.cpp
+Download OpenCV
+--> reference include and libs in build folder
+Download Eigen
+--> refernce only Eigen root folder since it is a header only library
+
+Naming and Coding convention
+----------------------------------------------------
++ Prevent variables that consists only of one character since they don't encapsulate enough information
++ dont use underscores in non constant variables. Use camelcase instead
++ clean code http://www.clean-code-developer.de/Wertesystem.ashx
+
+CUDA Tutorials
+----------------------------------------------------
+http://llpanorama.wordpress.com/cuda-tutorial/
+
+How to avoid Singleton
+----------------------------------------------------
+http://misko.hevery.com/2008/08/21/where-have-all-the-singletons-gone/
+
+Lucidchart
+----------------------------------------------------
+celester@web + normal pw
