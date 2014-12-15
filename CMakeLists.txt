@@ -8,7 +8,8 @@ project(Project)
 #set directories
 #-------------------------------------------------------------------
 if (WIN32)
-set (OpenCV_DIR ${CMAKE_SOURCE_DIR}/../../3rdParty/OpenCV/build)
+#set (OpenCV_DIR ${CMAKE_SOURCE_DIR}/../../3rdParty/OpenCV/build)
+set (OpenCV_DIR ${CMAKE_SOURCE_DIR}/../../3rdParty/OpenCV/sources-build)
 set (Eigen_DIR ${CMAKE_SOURCE_DIR}/../../3rdParty/Eigen)
 set (OpticalFlow_DIR ${CMAKE_SOURCE_DIR}/../../3rdParty/OpticalFlow)
 endif (WIN32)
@@ -87,5 +88,6 @@ endif(DOXYGEN_FOUND)
 #-------------------------------------------------------------------
 #copy all dlls from OpenCV to this projects exe directory
 #-------------------------------------------------------------------
-file(GLOB OPENCV_DLLS ${OpenCV_DIR}/x64/vc12/bin/*.dll)
+#file(GLOB OPENCV_DLLS ${OpenCV_DIR}/x64/vc12/bin/*.dll)
+file(GLOB OPENCV_DLLS ${OpenCV_DIR}/bin/*.dll)
 file(COPY ${OPENCV_DLLS} DESTINATION ${CMAKE_BINARY_DIR})

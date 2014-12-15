@@ -1,121 +1,96 @@
+// Prokject
+#include "OpticalFlow.h"
+#include "DepthMap.h"
+#include "FlowVector3D.h"
+#include "Segmentation.h"
+#include "Visualize.h"
+// C
 #include <iostream>
-#include <cstdio>
-#include <Eigen/Dense>
-#include "opencv2/opencv.hpp"
-
-// CUDA runtime.
+#include <fstream>
+// Opencv
+#include "opencv2/core/core.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/gpu/gpu.hpp"
+// Cuda
 #include <cuda.h>
 #include <cuda_runtime.h>
+// Eigen
+#include <Eigen/Dense>
 
-//ADD_VECT library header
-#include "add_vect.h"
-
-#include <opencv2/gpu/gpu.hpp>
-
-#define SIZE 1024
-
-using namespace Eigen;
-using namespace cv;
 using namespace std;
+using namespace cv;
+using namespace cv::gpu;
 
-void testOpenCVAndCuda() {
-    // Load images
-    cv::Mat PreviousFrameGrayFloat = Mat::eye(60, 60, CV_32FC1); // Has an image in format CV_32FC1
-    cv::Mat CurrentFrameGrayFloat = Mat::eye(60, 60, CV_32FC1);  // Has an image in format CV_32FC1
-
-    // Upload images to GPU
-    cv::gpu::GpuMat PreviousFrameGPU(PreviousFrameGrayFloat);
-    cv::gpu::GpuMat CurrentFrameGPU(CurrentFrameGrayFloat);
-
-    // Prepare receiving variables
-    cv::gpu::GpuMat FlowXGPU;
-    cv::gpu::GpuMat FlowYGPU;
-
-    // Create optical flow object
-    cv::gpu::BroxOpticalFlow OpticalFlowGPU = cv::gpu::BroxOpticalFlow(0.197f, 0.8f, 50.0f, 10, 77, 10);
-
-    // Perform optical flow
-    OpticalFlowGPU(PreviousFrameGPU, CurrentFrameGPU, FlowXGPU, FlowYGPU); // EXCEPTION
-    // Exception in opencv_core244d!cv::GlBuffer::unbind
-
-    // Download flow from GPU
-    cv::Mat FlowX;
-    cv::Mat FlowY;
-    FlowXGPU.download(FlowX);
-    FlowYGPU.download(FlowY);
-}
-
-void testCuda() {
-    //vectors
-    const int N = 5;
-
-    double A[N] = {31.23, 321.45, 431.123, 98, 762.14};
-    double B[N] = {12.3, 3.2145, 432.3, 982.3, 7621.4};
-    double C[N] = {0.0, 0.0, 0.0, 0., 0.0};
-
-
-    //GPU variables
-    double *dev_A, *dev_B, *dev_C;
-    cudaMalloc(&dev_A, N * sizeof(double));
-    cudaMalloc(&dev_B, N * sizeof(double));
-    cudaMalloc(&dev_C, N * sizeof(double));
-//	dev_A = copy_array_to_device(A, N);
-//	dev_B = copy_array_to_device(B, N);
-//	dev_C = copy_array_to_device(C, N);
-    cudaMemcpy(dev_A, A, N * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_B, B, N * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_C, C, N * sizeof(double), cudaMemcpyHostToDevice);
-
-
-    //call the library function
-     add_vect(N, dev_A, dev_B, dev_C);
-
-    //copy back
-//	memcpy_to_host(C, dev_C, N);
-    cudaMemcpy(C, dev_C, N * sizeof(double), cudaMemcpyDeviceToHost);
-
-    for (int i=0; i<N; i++)
-    {
-        printf("elem %d-th = %f\n",i,C[i]);
+String getStringFromInt(int val) {
+    if (val < 10) {
+        return "0" + to_string(val);
+    }else {
+        return to_string(val);
     }
+
 }
 
-int testOpencv() {
-        VideoCapture cap(0); // open the default camera
-        if(!cap.isOpened())  // check if we succeeded
-            return -1;
-        Mat frame;
+String rootStr = "./res/frame";
+String endStr = ".png";
+int number = 0;
+int nextFrame(cv::gpu::GpuMat &d__currentFrame) {
+    // Get path name
+    number = (number + 1) % 15;
+    string path =  rootStr + getStringFromInt(number) + endStr;
 
-        // ensure that videocapture is initialized
-        while(frame.rows == 0 && frame.cols == 0) {
-            cap >> frame;
-        }
+    // Load image from path
+    Mat frame = imread(path, IMREAD_GRAYSCALE);
+    if (frame.empty()) {
+        cerr << "Can't open image [" << path << "]" << endl;
+        return -1;
+    }
 
-        // create window with dimensions of frame
-        namedWindow("edges",1);
-
-        // capture frame
-        while(1) {
-            cap >> frame;
-            imshow("edges", frame);
-            if(waitKey(30) >= 0) break;
-        }
-
-        // the camera will be deinitialized automatically in VideoCapture destructor
-        return 0;
+    // Convert mat
+    GpuMat d_frame(frame);
+    d_frame.convertTo(d__currentFrame, CV_32F, 1.0 / 255.0);
+    return 0;
 }
 
-void testEigen() {
-    Matrix3d m = Matrix3d::Random();
-    m = (m + Matrix3d::Constant(1.2)) * 50;
-    cout << "m =" << endl << m << endl;
-    Vector3d v(1,2,3);
-    cout << "m * v =" << endl << m * v << endl;
-}
+int main() {
+
+    cv::gpu::DeviceInfo info = getDevice();
+    int num_devices = cv::gpu::getCudaEnabledDeviceCount();
+    std::cout << "GPU infos" << std::endl;
+    std::cout << "Device count: " << num_devices << std::endl;
+    std::cout << "Device info: " << info.name() << " version " <<  info.majorVersion() << "." << info.minorVersion() << std::endl;
+
+    // Project modules
+    OpticalFlow opticalFlowModule;
+    DepthMap depthMapModule;
+    FlowVector3D flowVector3DModule;
+    Segmentation segmentationModule;
+    Visualize visualizeModule("Dynamic regions");
+
+    // Frames
+    cv::gpu::GpuMat d__previousFrame;
+    cv::gpu::GpuMat d__currentFrame;
+
+    // Set previous frame
+    nextFrame(d__previousFrame);
+
+    // Optical flow
+    cv::gpu::GpuMat d__flowX(d__previousFrame.size(), CV_32FC1);
+    cv::gpu::GpuMat d__flowY(d__previousFrame.size(), CV_32FC1);
+
+    while(1) {
+        // Get next frame
+        if (nextFrame(d__currentFrame) == -1) break;
+
+        // Project pipeline
+        opticalFlowModule.calculate(d__currentFrame, d__previousFrame, d__flowX, d__flowY);
 
 
-int main(int, char**) {
-//    testCuda();
-//    testOpencv();
-    testOpenCVAndCuda();
+        // Show result
+        visualizeModule.showFlow(d__flowX, d__flowY);
+
+        // saves  current frame in previous frame
+        d__currentFrame.copyTo(d__previousFrame);
+        if(waitKey(30) >= 0) break;
+    }
+    return 0;
 }
