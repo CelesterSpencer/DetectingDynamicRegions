@@ -27,3 +27,16 @@ http://misko.hevery.com/2008/08/21/where-have-all-the-singletons-gone/
 Lucidchart
 ----------------------------------------------------
 celester@web + normal pw
+
+Measure time on gpu
+----------------------------------------------------
+double gpuTime;
+unsigned int hTimer;
+CUT_SAFE_CALL(cutCreateTimer(&hTimer));
+CUT_SAFE_CALL( cutResetTimer(hTimer) );
+CUT_SAFE_CALL( cutStartTimer(hTimer) );
+
+// Do work here
+
+CUT_SAFE_CALL(cutStopTimer(hTimer));
+gpuTime = cutGetTimerValue(hTimer);

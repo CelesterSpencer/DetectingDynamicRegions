@@ -11,6 +11,7 @@ public:
     Visualize(std::string windowName) {m__windowName = windowName; }
 
     void showFlow(cv::gpu::GpuMat &xFlow,cv::gpu::GpuMat &yFlow);
+    void show3DFlow(cv::gpu::GpuMat &flowAngle,cv::gpu::GpuMat &flowMagnitude);
 private:
     std::string m__windowName;
 };

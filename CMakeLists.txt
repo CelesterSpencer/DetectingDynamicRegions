@@ -40,7 +40,7 @@ endif(OPENCV_FOUND)
 #find cuda
 #-------------------------------------------------------------------
 FIND_PACKAGE(CUDA REQUIRED)
-set (CUDA_NVCC_FLAGS "-arch=sm_13" CACHE STRING "nvcc flags" FORCE)
+set (CUDA_NVCC_FLAGS "-arch=sm_20" CACHE STRING "nvcc flags" FORCE)
 SET (CUDA_VERBOSE_BUILD ON CACHE BOOL "nvcc verbose" FORCE) 
 #HW capability 1.3
 
@@ -91,3 +91,4 @@ endif(DOXYGEN_FOUND)
 #file(GLOB OPENCV_DLLS ${OpenCV_DIR}/x64/vc12/bin/*.dll)
 file(GLOB OPENCV_DLLS ${OpenCV_DIR}/bin/*.dll)
 file(COPY ${OPENCV_DLLS} DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/res DESTINATION ${CMAKE_BINARY_DIR})

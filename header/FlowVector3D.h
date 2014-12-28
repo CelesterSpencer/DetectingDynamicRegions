@@ -1,7 +1,11 @@
 #ifndef _FLOW_VECTOR_3D_H_
 #define _FLOW_VECTOR_3D_H_
 
+#include <iostream>
+
 #include <opencv2/core/core.hpp>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/gpu/gpu.hpp"
 
 /*!
  * \class A 3D flow vector is a finer assumption of the real world motion and is invariant against depth
@@ -12,16 +16,15 @@ class FlowVector3D{
 public:
     /*!
      * \brief Scales the optical flow vectors by the depth described in the depthmap
-     * \param in__inputFrame input image that is used to estimate a coarse depth map
-     * \param in__opticalFlow dense optical flow field
+     * \param in__flowX dense optical flow field in x direction
+     * \param in__flowY dense optical flow field in y direction
      * \param in__depthMap fine depth map that is used to scale the vectors
-     * \param out__flowVector3D resulting vector field with vectors scaled by their depth
+     * \param out__flow3DX resulting scale invariant vector field in x direction
+     * \param out__flow3DY resulting scale invariant vector field in y direction
      */
-    void calculate(cv::Mat &in__inputFrame, cv::Mat &in__opticalFlow, cv::Mat &in__depthMap, cv::Mat &out__flowVector3D);
+    void calculate(cv::gpu::GpuMat &in__flowX, cv::gpu::GpuMat &in__flowY, cv::gpu::GpuMat &in__depthMap, cv::gpu::GpuMat &d__flow3DAngle, cv::gpu::GpuMat &d__flow3DMag);
 private:
-    cv::Mat m__inputFrame;
-    cv::Mat m__opticalFlow;
-    cv::Mat m__depthMap;
+
 };
 
 #endif

@@ -1,10 +1,20 @@
 #include "FlowVector3D.h"
+#include "scaleByDepth.h"
 
 //----------------------------------------------------------------------------------------
 // PUBLIC METHODS
 //----------------------------------------------------------------------------------------
 
-void calculate(cv::Mat &in__inputFrame, cv::Mat &in__opticalFlow, cv::Mat &in__depthMap, cv::Mat &out__flowVector3D) {
+void FlowVector3D::calculate(cv::gpu::GpuMat &d__flowX, cv::gpu::GpuMat &d__flowY, cv::gpu::GpuMat &d__depthMap, cv::gpu::GpuMat &d__flow3DAngle, cv::gpu::GpuMat &d__flow3DMag) {
+    const int64 start = cv::getTickCount();
 
+    cv::gpu::GpuMat d__magnitude;
+    cv::gpu::cartToPolar(d__flowX, d__flowY, d__magnitude, d__flow3DAngle, true);
+
+    cv::gpu::multiply(d__magnitude, d__depthMap, d__flow3DMag);
+//    scaleDepth(d__flowX, d__flowY, d__depthMap, d__flow3DAngle, 1024);
+
+    const double timeSec = (cv::getTickCount() - start) / cv::getTickFrequency();
+    std::cout << "Flow Vector 3D : \t" << timeSec << " sec" << std::endl;
 }
 

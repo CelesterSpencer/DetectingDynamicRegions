@@ -13,5 +13,5 @@ void OpticalFlow::calculate(cv::gpu::GpuMat &in__currentFrame, cv::gpu::GpuMat &
     brox(in__previousFrame, in__currentFrame, out__opticalFlowX, out__opticalFlowY);
 
     const double timeSec = (cv::getTickCount() - start) / cv::getTickFrequency();
-    std::cout << "Brox : " << timeSec << " sec" << std::endl;
+    std::cout << "Opt flow : \t" << timeSec << " sec" << std::endl;
 }

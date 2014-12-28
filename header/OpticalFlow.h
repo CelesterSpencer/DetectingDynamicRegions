@@ -14,7 +14,8 @@
  */
 class OpticalFlow{
 private:
-    cv::gpu::BroxOpticalFlow brox = cv::gpu::BroxOpticalFlow(0.197f, 50.0f, 0.8f, 10, 77, 10);
+    // (alpha, gamma, pyramid scale factor, number of inner iterations, number of outer iterations, number of basic solver iterations)
+    cv::gpu::BroxOpticalFlow brox = cv::gpu::BroxOpticalFlow(0.197f, 50.0f, 0.8f, 20, 77, 10);
 public:
     OpticalFlow();
     /*!
