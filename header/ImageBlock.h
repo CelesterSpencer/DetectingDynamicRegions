@@ -4,6 +4,14 @@
 #include <opencv2/core/core.hpp>
 #include "Region.h"
 
+enum Distance {
+    FAR,
+    MIDDLE,
+    NEAR,
+};
+
+
+
 /*!
  * \class A part of an frame that is used to break down and parallelize computation
  * \author Adrian Derstroff
@@ -11,19 +19,13 @@
  */
 class ImageBlock{
 public:
-    /*!
-     * \brief an image block's can be in the foreground which is near, in the middle or in the background which is far
-     */
-    enum Distance {NEAR, MIDDLE, FAR};
-    /*!
-     * \brief calculate depth and label it with either near, middle or far
-     */
-    void calDistance();
-private:
-    cv::Mat m__inputFrame;
-    Region m__region;
-    Distance m__distanceLabel;
-    double m__distanceValue;
-};
-
+    float m__clarity;
+    float m__contrast;
+    Distance m__distanceLevel;
+    Distance m__distanceLevelContrast;
+    Distance m__distanceCombined;
+    int startX;
+    int endX;
+    int startY;
+    int endY;
 #endif

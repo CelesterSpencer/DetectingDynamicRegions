@@ -9,11 +9,13 @@ void FlowVector3D::calculate(cv::gpu::GpuMat &d__flowX, cv::gpu::GpuMat &d__flow
     const int64 start = cv::getTickCount();
 
     cv::gpu::GpuMat d__magnitude;
+    std::cout << "created mat" << d__flowX.size() << d__flowY.size() << std::endl;
     cv::gpu::cartToPolar(d__flowX, d__flowY, d__magnitude, d__flow3DAngle, true);
+    std::cout << "finished cart to polar" << std::endl;
 
     cv::gpu::multiply(d__magnitude, d__depthMap, d__flow3DMag);
-//    scaleDepth(d__flowX, d__flowY, d__depthMap, d__flow3DAngle, 1024);
 
+    d__magnitude.release();
     const double timeSec = (cv::getTickCount() - start) / cv::getTickFrequency();
     std::cout << "Flow Vector 3D : \t" << timeSec << " sec" << std::endl;
 }

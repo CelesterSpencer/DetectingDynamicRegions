@@ -6,6 +6,7 @@
 #include <opencv2/core/core.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/gpu/gpu.hpp"
+#include <iostream>
 
 /*!
  * \class A 3D flow vector is a finer assumption of the real world motion and is invariant against depth

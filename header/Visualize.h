@@ -12,6 +12,8 @@ public:
 
     void showFlow(cv::gpu::GpuMat &xFlow,cv::gpu::GpuMat &yFlow);
     void show3DFlow(cv::gpu::GpuMat &flowAngle,cv::gpu::GpuMat &flowMagnitude);
+    void show3DFlow(cv::gpu::GpuMat &flowAngle,cv::gpu::GpuMat &flowMagnitude, std::string windowname);
+    void showRegions(cv::Mat regions);
 private:
     std::string m__windowName;
 };
