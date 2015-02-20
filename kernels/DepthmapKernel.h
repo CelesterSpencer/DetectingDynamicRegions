@@ -12,5 +12,9 @@ public:
     void calculateDepthPerImageblock(float *inptr__clarities, float *inptr__contrasts, int size, float *outptr__depths);
     void calculateMeanCbAndCrValues(cv::gpu::GpuMat &in__cbMap, cv::gpu::GpuMat &in__crMap, int in__numberOfImageblocks, int in__imageBlockSize, float *outptr__meanCb, float *outptr__meanCr);
     void mergeNeighborImageblocks(float* inptr__meanCb, float* inptr__meanCr, int in__numberOfImageblocks, int imageBlockCols, float threshold, float *outptr__neighbors);
+    void dv__mergeNeighborImageblocks(float* inptr__meanCb, float* inptr__meanCr, int numberOfImageBlocks, int numberOfImageblocksInX, float threshold, float *outptr__neighbors);
     void adjustDepthAndDistancelevel(float* inptr__neighbors, float *inptr__depths, int numberOfImageBlocks, float *outptr__adjustedDepths, int *outptr__distancelevels);
+    void getMaxDepth(float *inptr__depths, int in__numberOfImageblocks, float *outptr__maxDepth);
+    void normalizeDepth(float *inptr__adjustedDepth, float *inptr__maxDepth, int in__numberOfImageblocks);
+    void fillDepthMap(cv::gpu::GpuMat &in__depthMap, int in__numberOfImageblocks, int in__imageBlockSize, float *inptr__depth);
 };

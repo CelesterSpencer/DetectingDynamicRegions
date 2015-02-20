@@ -1,327 +1,338 @@
 #include "Segmentation.h"
+#include <unordered_map>
 
 //----------------------------------------------------------------------------------------
 // PUBLIC METHODS
 //----------------------------------------------------------------------------------------
 
-void Segmentation::calculate(cv::gpu::GpuMat &in__currentFrame, cv::gpu::GpuMat &in__flowVector3DAngle, cv::gpu::GpuMat &in__flowVector3DMagnitude, cv::gpu::GpuMat &out__subtractedAngle, cv::gpu::GpuMat &out__subtractedMagnitude, cv::Mat &out__segments, std::vector<Region> &out__dynamicRegions) {
+void Segmentation::calculate(cv::gpu::GpuMat &in__currentFrame, cv::gpu::GpuMat in__subtractedMagnitude, cv::gpu::GpuMat in__subtractedAngle, cv::Mat out__maskedRegions, std::vector<Region> &outptr__regions) {
     const int64 start = cv::getTickCount();
 
-    float globalAngle, globalMagnitude;
-
-    // estimate global motion
-    calcGlobalMotion(in__flowVector3DAngle, in__flowVector3DMagnitude, globalAngle, globalMagnitude);
-
-    // convert from magnitde/angle to x/y
-    cv::gpu::GpuMat subtractedX, subtractedY, flowVector3DX, flowVector3DY;
-    float globalX, globalY;
-    cv::Mat temp_x, temp_y;
-    cv::Mat temp_magnitude(1, 1, CV_32FC1, cv::Scalar(globalMagnitude));
-    cv::Mat temp_angle(1, 1, CV_32FC1, cv::Scalar(globalAngle));
-    cv::gpu::polarToCart(in__flowVector3DMagnitude, in__flowVector3DAngle, flowVector3DX, flowVector3DY, true);
-    cv::polarToCart(temp_magnitude, temp_angle, temp_x, temp_y, true);
-    globalX = temp_x.at<float>(0,0);
-    globalY = temp_y.at<float>(0,0);
-
-    // subtract global motion from 3D flow
-    subtractGlobalMotion(flowVector3DX, flowVector3DY, globalX, globalY, subtractedX, subtractedY);
-
-    // convert from x/y to magnitde/angle
-    cv::gpu::cartToPolar(subtractedX, subtractedY, out__subtractedMagnitude, out__subtractedAngle, true);
-
-    // segmentation
-    segmentDynamicObjects(out__subtractedAngle, out__subtractedMagnitude, out__segments);
-
-    const double timeSec = (cv::getTickCount() - start) / cv::getTickFrequency();
-    std::cout << "Segmentation : \t" << timeSec << " sec" << std::endl;
-}
-
-
-
-//----------------------------------------------------------------------------------------
-// PRIVATE METHODS
-//----------------------------------------------------------------------------------------
-
-void Segmentation::calcGlobalMotion(cv::gpu::GpuMat &in__flowVector3DAngle, cv::gpu::GpuMat &in__flowVector3DMagnitude, float &out__globalAngle, float &out__globalMagnitude) {
-    const int64 start = cv::getTickCount();
-
-    // class for segmentation
-    SegmentationKernel kernel;
-    kernel.setThreadSize(m__threadSize);
-
-    int numberOfBins = m__numberOfAngles * m__numberOfMagnitudes;
-
-    // calculate blocksize
-    int size = in__flowVector3DAngle.rows * in__flowVector3DAngle.cols;
-    int cols = in__flowVector3DAngle.cols;
-    int rows = in__flowVector3DAngle.rows;
-
-    // allocate array on device
-    int *d__bins;
-    int *binsPtr = new int[size * numberOfBins];
-    for(int ind = 0; ind < size * numberOfBins; ind++) {
-       *(binsPtr + ind) = 0;
-    }
-    cudaMalloc((void **)&d__bins, sizeof(int) * size * numberOfBins);
-    cudaMemcpy(d__bins, binsPtr, sizeof(int) * size * numberOfBins, cudaMemcpyHostToDevice);
-
-    // copy min and max to gpu
-    double minData = 0.0;
-    double *ptr_min = &minData;
-    double maxData = 0.0;
-    double *ptr_max = &maxData;
-
-    // get longest magnitude in d__magnitude and calculate the lengthPerMagnitude
-    cv::gpu::minMax(in__flowVector3DMagnitude, ptr_min, ptr_max);
-//    printf("biggest value is %f \n", *ptr_max);
-    m__lengthPerMagnitude = (float)(*ptr_max);
-
-    // calculate corresponding bin for every entry in d__angle
-
-    kernel.fillBins(in__flowVector3DMagnitude.ptr<float>(), in__flowVector3DAngle.ptr<float>(), in__flowVector3DMagnitude.step, in__flowVector3DAngle.step, cols, rows, m__numberOfMagnitudes,m__numberOfAngles, m__lengthPerMagnitude, d__bins);
-
-
-    // collect results iteratively
-    int tempSize = size;
-    while(tempSize > 1) {
-       bool isOdd = (tempSize % 2 == 1);
-       kernel.sumUpBins(tempSize, isOdd, numberOfBins, d__bins);
-       tempSize = tempSize / 2;
-    }
-
-    // copy results back
-    cudaMemcpy(binsPtr, d__bins, sizeof(int) * size * numberOfBins, cudaMemcpyDeviceToHost);
-
-    // for checking if all pixels were collected
-    int resultNumberOfPixel = 0;
-
-    // array with percentage of pixels of the angles
-    float *relativeAngleDistribution;
-    relativeAngleDistribution = (float*)malloc(sizeof(float) * m__numberOfAngles);
-
-    // array that counts the pixels in every magnitude bin
-    float *magnitudePixels;
-    magnitudePixels = (float*)malloc(sizeof(float) * m__numberOfMagnitudes);
-
-    // angle with biggest percentage
-    float biggestPercentageOfPixels = 0.0;
-    int ind_biggestAngle = 0;
-
-
-
-    // calculate percentage of each direction
-    for(int ind_angle = 0; ind_angle < m__numberOfAngles; ind_angle++) {
-       // collect all magnitudes and sub up for every angle
-       int numberOfPixelsInAngle = 0;
-       for (int ind_magnitude = 0; ind_magnitude < m__numberOfMagnitudes; ind_magnitude++) {
-           float numberOfPixelsInBin = binsPtr[ind_angle*m__numberOfMagnitudes + ind_magnitude];
-           numberOfPixelsInAngle += numberOfPixelsInBin;
-       }
-       // calculate percentage of all angles
-       relativeAngleDistribution[ind_angle] = (float)numberOfPixelsInAngle / size;
-       resultNumberOfPixel += numberOfPixelsInAngle;
-       if (relativeAngleDistribution[ind_angle] > biggestPercentageOfPixels) {
-            biggestPercentageOfPixels = relativeAngleDistribution[ind_angle];
-            ind_biggestAngle = ind_angle;
-       }
-//       printf("Bin %d : %f \n", ind, relativeNumber[ind]);
-    }
-    // just checking if all pixels had been landed in a bin
-    if (resultNumberOfPixel == size) {
-        printf("Size of binvalues and size of pixel matches \n");
-    }else {
-        printf("Size of binvalues and size of pixel does not match: %d %d \n", resultNumberOfPixel, size);
-    }
-
-
-
-    // get global motion candidates
-    int degreePerBin = 360 / numberOfBins;
-    float globalMotionCandidateMagnitude;
-    float globalMotionCandidateAngle;
-
-
-
-    // most of the objects move across the same angle
-    if (biggestPercentageOfPixels > 0.5) {
-
-       printf("Most vectors point to the same direction \n");
-
-       // just average all magnitudes since this direction must be the right direction
-       float meanMagnitude = 0;
-       int sumOfPixels = 0;
-       for (int ind_magnitude = 0; ind_magnitude < m__numberOfMagnitudes; ind_magnitude++) {
-            int numberOfPixels = binsPtr[ind_biggestAngle * m__numberOfMagnitudes + ind_magnitude];
-            /*
-             * we need to calculate ind+1 since we want the biggest bin to contain the maxMagnitude
-             * but also the smallest bin is expected to cover null vectors
-             */
-            float magnitudeLength = (ind_magnitude > 0) ? (ind_magnitude+1) * m__lengthPerMagnitude : 0;
-//            printf("magnitude length is %f %d \n", magnitudeLength, numberOfPixels);
-            meanMagnitude += (magnitudeLength * numberOfPixels);
-            sumOfPixels += numberOfPixels;
-       }
-       meanMagnitude /= sumOfPixels;
-
-       // store results in globalMotionCandidate
-       globalMotionCandidateMagnitude = meanMagnitude;
-       globalMotionCandidateAngle = degreePerBin * ind_biggestAngle;
-
-
-
-    // select all possible values and add them together
-    }else {
-       printf("vectors point to several directions \n");
-
-       float resultingXDirection = 0;
-       float resultingYDirection = 0;
-       cv::Mat temp_angleMat(1,1, CV_32FC1, cv::Scalar(0));
-       cv::Mat temp_magnitudeMat(1,1, CV_32FC1, cv::Scalar(0));
-       cv::Mat temp_xMat, temp_yMat;
-
-       // wight all direction with respect to their distribution
-       for(int ind_angle = 0 ; ind_angle < m__numberOfAngles; ind_angle++) {
-            float angle = ind_angle * degreePerBin;
-            float weight = relativeAngleDistribution[ind_angle];
-
-            // get mean magnitude
-            float meanMagnitude = 0;
-            int sumOfPixels = 0;
-            for (int ind_magnitude = 0; ind_magnitude < m__numberOfMagnitudes; ind_magnitude++) {
-                 int numberOfPixels = binsPtr[ind_biggestAngle * m__numberOfMagnitudes + ind_magnitude];
-                 /*
-                  * we need to calculate ind+1 since we want the biggest bin to contain the maxMagnitude
-                  * but also the smallest bin is expected to cover null vectors
-                  */
-                 float magnitudeLength = (ind_magnitude > 0) ? (ind_magnitude+1) * m__lengthPerMagnitude : 0;
-                 meanMagnitude += (magnitudeLength * numberOfPixels);
-                 sumOfPixels += numberOfPixels;
-            }
-            meanMagnitude /= sumOfPixels;
-
-            // calculate resulting direction
-            temp_angleMat.at<float>(0,0) = angle;
-            temp_magnitudeMat.at<float>(0,0) = meanMagnitude;
-            cv::polarToCart(temp_magnitudeMat, temp_angleMat, temp_xMat, temp_yMat, true);
-            resultingXDirection += temp_xMat.at<float>(0,0) * weight;
-            resultingYDirection += temp_yMat.at<float>(0,0) * weight;
-       }
-       temp_xMat.at<float>(0,0) = resultingXDirection;
-       temp_yMat.at<float>(0,0) = resultingYDirection;
-       cv::cartToPolar(temp_xMat, temp_yMat, temp_magnitudeMat, temp_angleMat);
-
-       // store results in globalMotionCandidate
-       globalMotionCandidateMagnitude = temp_magnitudeMat.at<float>(0,0);
-       globalMotionCandidateAngle = temp_angleMat.at<float>(0,0);
-    }
-
-    // out values
-    out__globalAngle = globalMotionCandidateAngle;
-    out__globalMagnitude = globalMotionCandidateMagnitude;
-
-    printf("globalMagnitude: %f \n", out__globalMagnitude);
-    printf("globalAngle: %f \n", out__globalAngle);
-
-    // free memory
-    free(binsPtr);
-
-    const double timeSec = (cv::getTickCount() - start) / cv::getTickFrequency();
-    std::cout << "Global motion : \t" << timeSec << " sec" << std::endl;
-}
-
-
-
-void Segmentation::subtractGlobalMotion(cv::gpu::GpuMat &in__flowVector3DX, cv::gpu::GpuMat &in__flowVector3DY, float in__globalX, float in__globalY, cv::gpu::GpuMat &out__subtractedX, cv::gpu::GpuMat &out__subtractedY) {
-    const int64 start = cv::getTickCount();
-
-    in__flowVector3DX.copyTo(out__subtractedX);
-    in__flowVector3DY.copyTo(out__subtractedY);
-
-    // class for segmentation
-    SegmentationKernel kernel;
-    kernel.setThreadSize(m__threadSize);
-
-    // subtract global motion
-    kernel.globalMotionSubtractionHost(in__flowVector3DX, in__flowVector3DY, in__globalX, in__globalY, out__subtractedX, out__subtractedY);
-
-    const double timeSec = (cv::getTickCount() - start) / cv::getTickFrequency();
-    std::cout << "Subtract global motion : \t" << timeSec << " sec" << std::endl;
-}
-
-
-
-void Segmentation::segmentDynamicObjects(cv::gpu::GpuMat &flowAngleSubtracted, cv::gpu::GpuMat &flowMagnitudeSubtracted, cv::Mat &out__segments) {
-
-    float degreePerBin = 360.0/m__numberOfBins;
-
-    cv::Mat flowMagnitudeSubtractedHost;
-    flowAngleSubtracted.download(out__segments);
-    flowMagnitudeSubtracted.download(flowMagnitudeSubtractedHost);
-
-    cv::Size angleMatSize = flowAngleSubtracted.size();
-
-    cv::Mat regions(angleMatSize, CV_32FC1, cv::Scalar(0));
+    //---------------------------------------------------------------------------------------------------------------------------------
+    // setup variables
+    //---------------------------------------------------------------------------------------------------------------------------------
+    float degreePerBin = 360.0/32;
+    cv::Mat subtractedFlowMagnitude, subtractedFlowAngle;
+    in__subtractedAngle.download(subtractedFlowAngle);
+    in__subtractedMagnitude.download(subtractedFlowMagnitude);
+    int cols = subtractedFlowAngle.cols;
+    int rows = subtractedFlowAngle.rows;
     int counter = 1;
+    double *minMagnitude = new double;
+    double *maxMagnitude = new double;
+    cv::gpu::minMax(in__subtractedMagnitude, minMagnitude, maxMagnitude);
+    float threshold = *maxMagnitude * 0.01;
 
+    std::unordered_map<int, Region> regions;
+
+    //---------------------------------------------------------------------------------------------------------------------------------
     // region labeling
-    for(int y = 0; y < out__segments.rows; y++) {
-        for(int x = 0; x < out__segments.cols; x++) {
+    //---------------------------------------------------------------------------------------------------------------------------------
+    for(int y = 0; y < rows; y++) {
+        for(int x = 0; x < cols; x++) {
 
-            // set region to 0 if its magnitude is below a threshold
-            float magnitude = flowMagnitudeSubtractedHost.at<float>(y,x);
-            if (magnitude < 1.5) {
-                //printf("value is below threshold \n");
-                regions.at<float>(y,x) = 0;
-                continue;
-            }
-
+            //---------------------------------------------------------------------------------------------------------------------------------
+            // get left and upper neighbor
+            //---------------------------------------------------------------------------------------------------------------------------------
+            float magnitude = subtractedFlowMagnitude.at<float>(y,x);
             int up = y - 1;
             int left = x - 1;
-            // check if upper neighbor has the same angle
 
-            if (up >= 0) {
-                float angle, angleUp;
-                angle = out__segments.at<float>(y,x);
-                angle /= degreePerBin;
-                angleUp = out__segments.at<float>(up,x);
-                angleUp /= degreePerBin;
-                if (angle == angleUp) {
-                    float regionVal = regions.at<float>(up,x);
-                    if(regionVal != 0) {
-                        regions.at<float>(y,x) = regionVal;
-                        continue;
+            //---------------------------------------------------------------------------------------------------------------------------------
+            // set region to 0 if its magnitude is below a threshold
+            //---------------------------------------------------------------------------------------------------------------------------------
+            if (magnitude < threshold) {
+                out__maskedRegions.at<float>(y,x) = 0;
+            }else {
+                //---------------------------------------------------------------------------------------------------------------------------------
+                // check if upper neighbor has the same angle
+                //---------------------------------------------------------------------------------------------------------------------------------
+                if (up >= 0) {
+                    float angle, angleUp, r, g, b, rUp, gUp, bUp;
+
+                    //
+                    angle = subtractedFlowAngle.at<float>(y,x);
+
+
+                    angleUp = subtractedFlowAngle.at<float>(up,x);
+
+                    if (angle == angleUp) {
+                        float regionVal = out__maskedRegions.at<float>(up,x);
+                        if(regionVal != 0) {
+                            out__maskedRegions.at<float>(y,x) = regionVal;
+                            std::unordered_map<int, Region>::const_iterator it = regions.find(regionVal);
+                            if (it == regions.end()) {
+                                Region region(cols, rows);
+                                region.addPixel(x,y);
+                                regions.insert(std::pair<float,Region>(regionVal,region));
+                            }else {
+                                Region region = it->second;
+                                region.addPixel(x,y);
+                            }
+                            continue;
+                        }
                     }
                 }
-            }
 
-            // check if left neighbor has the same angle
-            if (left >= 0) {
-                float angle, angleLeft;
-                angle = out__segments.at<float>(y,x);
-                angle /= degreePerBin;
-                angleLeft = out__segments.at<float>(y,left);
-                angleLeft /= degreePerBin;
-                if (angle == angleLeft) {
-                    float regionVal = regions.at<float>(y,left);
-                    if(regionVal != 0) {
-                        regions.at<float>(y,x) = regionVal;
-                        continue;
+                //---------------------------------------------------------------------------------------------------------------------------------
+                // check if left neighbor has the same angle
+                //---------------------------------------------------------------------------------------------------------------------------------
+                if (left >= 0) {
+                    float angle, angleLeft;
+                    angle = subtractedFlowAngle.at<float>(y,x);
+                    angle /= degreePerBin;
+                    angleLeft = subtractedFlowAngle.at<float>(y,left);
+                    angleLeft /= degreePerBin;
+                    if (angle == angleLeft) {
+                        float regionVal = out__maskedRegions.at<float>(y,left);
+                        if(regionVal != 0) {
+                            out__maskedRegions.at<float>(y,x) = regionVal;
+                            std::unordered_map<int, Region>::const_iterator it = regions.find(regionVal);
+                            if (it == regions.end()) {
+                                Region region(cols, rows);
+                                region.addPixel(x,y);
+                                regions.insert(std::pair<float,Region>(regionVal,region));
+                            }else {
+                                Region region = it->second;
+                                region.addPixel(x,y);
+                            }
+                            continue;
+                        }
                     }
                 }
+
+                //---------------------------------------------------------------------------------------------------------------------------------
+                // in case both neighbors have a different angle assign new label
+                //---------------------------------------------------------------------------------------------------------------------------------
+                out__maskedRegions.at<float>(y,x) = counter;
+                std::unordered_map<int, Region>::const_iterator it = regions.find(counter);
+                if (it == regions.end()) {
+                    Region region(cols, rows);
+                    region.addPixel(x,y);
+                    regions.insert(std::pair<float,Region>(counter,region));
+                }else {
+                    Region region = it->second;
+                    region.addPixel(x,y);
+                }
+                counter++;
             }
-            // in case both neighbors have a different angle assign new label
-            regions.at<float>(y,x) = counter;
-            counter++;
         }
     }
 
-    // scale labels from 0..1 to 0..255
-//    printf("highest counter is %d \n", counter);
-    for(int y = 0; y < out__segments.rows; y++) {
-        for(int x = 0; x < out__segments.cols; x++) {
-            out__segments.at<float>(y,x) = regions.at<float>(y,x) /counter;
-            out__segments.at<float>(y,x) *= 255;
+    //----------------------------------------------------------------------------------------
+    // push all regions in a vector
+    //----------------------------------------------------------------------------------------
+    outptr__regions.reserve(regions.size());
+    for (auto region : regions) {
+        outptr__regions.push_back(region.second);
+    }
+//    std::cout << "Found " << counter << " different regions" << std::endl;
+
+    //----------------------------------------------------------------------------------------
+    // display computation time
+    //----------------------------------------------------------------------------------------
+    const double timeSec = (cv::getTickCount() - start) / cv::getTickFrequency();
+    std::cout << "Segmentation : \t" << timeSec << " sec" << std::endl;
+
+}
+
+void Segmentation::segment(cv::gpu::GpuMat &in__frameRGB, cv::gpu::GpuMat &din__flowX, cv::gpu::GpuMat &din__flowY, cv::gpu::GpuMat &out__segments) {
+
+    //----------------------------------------------------------------------------------------
+    // convert to YUV color model
+    //----------------------------------------------------------------------------------------
+    cv::gpu::GpuMat d__currentFrameYUV(in__frameRGB.size(), CV_32FC3);
+    cv::gpu::cvtColor(in__frameRGB, d__currentFrameYUV, CV_RGB2YUV);
+    cv::gpu::GpuMat splittedYUVMaps[3];
+    cv::gpu::split(in__frameRGB, splittedYUVMaps);
+    cv::gpu::GpuMat d__YChannel = splittedYUVMaps[0];
+    cv::gpu::GpuMat d__UChannel = splittedYUVMaps[1];
+    cv::gpu::GpuMat d__VChannel = splittedYUVMaps[2];
+
+
+
+    //----------------------------------------------------------------------------------------
+    // segment frame depending on flow, color and location cues
+    //----------------------------------------------------------------------------------------
+    if (!m__isFirstSegmentation) {
+
+        //----------------------------------------------------------------------------------------
+        // 0 setup variables
+        //----------------------------------------------------------------------------------------
+        cv::gpu::GpuMat maxFlowLogLikeliHoods(din__flowX.size(), CV_32FC1, cv::Scalar(0.0));
+        cv::gpu::GpuMat sumOfSpatialMeans(din__flowX.size(), CV_32FC1, cv::Scalar(0.0));
+        cv::gpu::GpuMat *dptr__flowLogLikeliHoods = new cv::gpu::GpuMat[m__kMax];
+        cv::gpu::GpuMat *dptr__colorLogLikeliHoods = new cv::gpu::GpuMat[m__kMax];
+        cv::gpu::GpuMat *dptr__likelihoods = new cv::gpu::GpuMat[m__kMax];
+        cv::gpu::GpuMat *dptr__covarianzMatrices = new cv::gpu::GpuMat[m__kMax];
+
+
+
+        //----------------------------------------------------------------------------------------
+        // 1 iterate over all classes and calculate the flow and color likelihood and determine max flow likelihood
+        //----------------------------------------------------------------------------------------
+        for (int k = 0; k < m__kMax; k++ ) {
+
+
+            //----------------------------------------------------------------------------------------
+            // create binary mask
+            //----------------------------------------------------------------------------------------
+
+
+            //----------------------------------------------------------------------------------------
+            // 1.1 calculate mean and covarianz matrix
+            //----------------------------------------------------------------------------------------
+            float *meanVector = new float[7];
+            std::fill_n(meanVector, 7, -1.0f);
+            cv::gpu::GpuMat d__covarianzMatrix(7, 7, CV_32FC1, cv::Scalar(0.0f));
+
+
+
+            kernel.calcMean(m__classes, d__YChannel, d__UChannel, d__VChannel, din__flowX, din__flowY, k,  m__numberOfPointsPerClass[k], meanVector);
+            kernel.calcCovarianzMatrix(m__classes, d__YChannel, d__UChannel, d__VChannel, din__flowX, din__flowY, meanVector, k, m__numberOfPointsPerClass[k], d__covarianzMatrix);
+            cv::Mat covMat;
+            d__covarianzMatrix.download(covMat);
+
+
+
+            //----------------------------------------------------------------------------------------
+            // 1.2 calculate flow and color PDF
+            //----------------------------------------------------------------------------------------
+            cv::gpu::GpuMat d__flowLogLikelihood(din__flowX.size(), CV_32FC1, cv::Scalar(0.0));
+            cv::gpu::GpuMat d__colorLogLikelihood(din__flowX.size(), CV_32FC1, cv::Scalar(0.0));
+            kernel.calculateFlowAndColorLikelihood(
+                        d__YChannel, d__UChannel, d__VChannel,
+                        din__flowX, din__flowY,
+                        d__covarianzMatrix, meanVector,
+                        d__flowLogLikelihood, d__colorLogLikelihood,
+                        maxFlowLogLikeliHoods);
+
+
+
+            //----------------------------------------------------------------------------------------
+            // 1.3 calculate spatial means
+            //----------------------------------------------------------------------------------------
+            cv::gpu::GpuMat d__binaryImage(din__flowX.size(), CV_32FC1, cv::Scalar(0.0));
+            cv::gpu::GpuMat d__gaussianImage(din__flowX.size(), CV_32FC1, cv::Scalar(0.0));
+            kernel.makeBinaryImage(m__classes, k, d__binaryImage);
+            float sigma = covMat.at<float>(0,1);
+            std::cout << "Sigma is " << sigma << std::endl;
+            cv::Size2i size((int)31,(int)31);
+            cv::Ptr<cv::gpu::FilterEngine_GPU> filter = cv::gpu::createGaussianFilter_GPU(CV_32FC1, size, sigma);
+            filter->apply(d__binaryImage,d__gaussianImage);
+            kernel.matAdd(d__gaussianImage, sumOfSpatialMeans);
+
+
+
+
+            //----------------------------------------------------------------------------------------
+            // 1.4 save temporary results
+            //----------------------------------------------------------------------------------------
+            dptr__flowLogLikeliHoods[k] = d__flowLogLikelihood.clone();
+            dptr__colorLogLikeliHoods[k] = d__colorLogLikelihood.clone();
+            dptr__covarianzMatrices[k] = d__covarianzMatrix.clone();
+
+
+
+            //----------------------------------------------------------------------------------------
+            // 1.5 release memory
+            //----------------------------------------------------------------------------------------
+            d__flowLogLikelihood.release();
+            d__colorLogLikelihood.release();
+            d__covarianzMatrix.release();
+            d__binaryImage.release();
+            d__gaussianImage.release();
+
         }
+
+
+
+        //----------------------------------------------------------------------------------------
+        // 2 iterate over all classes and calculate the final likelihood for every class
+        //----------------------------------------------------------------------------------------
+        for (int k = 0; k < m__kMax; k++ ) {
+            cv::gpu::GpuMat d__colorLogLikeLihood = dptr__colorLogLikeliHoods[k];
+            cv::gpu::GpuMat d__flowLogLikeLihood = dptr__flowLogLikeliHoods[k];
+            cv::gpu::GpuMat d__covarianzMatrix = dptr__covarianzMatrices[k];
+            cv::Mat covarianzMatrix;
+            d__covarianzMatrix.download(covarianzMatrix);
+            cv::gpu::GpuMat likelihood(din__flowX.size(), CV_32FC1, cv::Scalar(0.0));
+            int numberOfPoints = m__numberOfPointsPerClass[k];
+            float sigma = covarianzMatrix.at<float>(1,0);
+            int halfSearchregion = 1;
+
+            kernel.calculateLikelihood(d__colorLogLikeLihood, d__flowLogLikeLihood, sumOfSpatialMeans, maxFlowLogLikeliHoods, numberOfPoints, sigma, halfSearchregion, likelihood);
+            dptr__likelihoods[k] = likelihood.clone();
+
+            dptr__colorLogLikeliHoods[k].release();
+            dptr__flowLogLikeliHoods[k].release();
+            covarianzMatrix.release();
+            likelihood.release();
+        }
+
+
+
+        //----------------------------------------------------------------------------------------
+        // 3 for every pixel find the class with the biggest likelihood
+        //----------------------------------------------------------------------------------------
+        cv::gpu::GpuMat maxLikelihoods(din__flowX.size(), CV_32FC1, cv::Scalar(-1.0));
+        cv::gpu::GpuMat maxClasses(din__flowX.size(), CV_32FC1, cv::Scalar(0.0));
+        for (int k = 0; k < m__kMax; k++ ) {
+            kernel.getBiggestLikelihood(maxLikelihoods, maxClasses, dptr__likelihoods[k], k);
+        }
+
+
+
+        //----------------------------------------------------------------------------------------
+        // 4 calculate number of classes and pixel per class
+        //----------------------------------------------------------------------------------------
+        double minClass = 0.0;
+        double maxClass = 0.0;
+        cv::gpu::minMax(maxClasses, &minClass, &maxClass);
+        m__kMax = (int)maxClass;
+        m__numberOfPointsPerClass.reserve(m__kMax);
+        std::cout << "Max class is " << m__kMax << std::endl;
+        for (int k = 0; k < m__kMax; k++) {
+            cv::gpu::GpuMat d__classK;
+            kernel.makeBinaryImage(maxClasses, k, d__classK);
+            m__numberOfPointsPerClass[k] = (int)cv::gpu::sum(d__classK)[0];
+            std::cout << m__numberOfPointsPerClass[k] << "points in Class " << k << std::endl;
+        }
+
+
+
+//        //----------------------------------------------------------------------------------------
+//        // 4 save results
+//        //----------------------------------------------------------------------------------------
+        m__classes = maxClasses.clone();
+        out__segments = maxClasses.clone();
+
+
+
+        //----------------------------------------------------------------------------------------
+        // 5 release memory
+        //----------------------------------------------------------------------------------------
+        maxFlowLogLikeliHoods.release();
+        sumOfSpatialMeans.release();
+        for (int k = 0; k < m__kMax; k++) {
+            dptr__likelihoods[k].release();
+        }
+
+    }
+
+    //----------------------------------------------------------------------------------------
+    // if first frame calculate an initial segmentation
+    //----------------------------------------------------------------------------------------
+    else {
+
+        cv::Mat mask(in__frameRGB.size(), CV_32S,  cv::Scalar(0));
+        m__classes.upload(mask);
+        m__numberOfPointsPerClass.push_back(mask.cols * mask.rows);
+
+        m__isFirstSegmentation = false;
+
     }
 
 }
+
+

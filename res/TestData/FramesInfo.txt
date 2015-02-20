@@ -1,0 +1,440 @@
+Image 0
+Translation Camera 
+0.0,0.0,0.0 
+Translation Objects 
+0.0,0.0,0.0 
+0.0,0.0,0.0 
+0.0,0.0,0.0 
+------------------------ 
+Image 1
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 2
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 3
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 4
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 5
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 6
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 7
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 8
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 9
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 10
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 11
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 12
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 13
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 14
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 15
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 16
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 17
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 18
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 19
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 20
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 21
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 22
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 23
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 24
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 25
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 26
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 27
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 28
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 29
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 30
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 31
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 32
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 33
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 34
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 35
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 36
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 37
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 38
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 39
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 40
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 41
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 42
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 43
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 44
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 45
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 46
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 47
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 48
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 49
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 50
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 51
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 52
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 53
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 
+Image 54
+Translation Camera 
+0,0,-20
+Translation Objects 
+0.0,0.0,0.0 
+1,0,0
+2,0,0
+------------------------ 

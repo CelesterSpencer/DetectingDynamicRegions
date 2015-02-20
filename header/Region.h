@@ -10,10 +10,19 @@
  */
 class Region {
 public:
-
+    Region(int cols, int rows);
+    void addPixel(int x, int y);
+    std::vector<cv::Point> getAllPixels();
 private:
-    cv::Rect m__boundingBox; //enclosing possible area of pixel that belong to this region
-    cv::Mat m__mask;
+    std::vector<cv::Point> pixels;
+    int m__minX = -1;
+    int m__maxX = -1;
+    int m__minY = -1;
+    int m__maxY = -1;
+    int m__centerX = -1;
+    int m__centerY = -1;
+    float m__varianceX = -1.0;
+    float m__varianceY = -1.0;
 };
 
 #endif

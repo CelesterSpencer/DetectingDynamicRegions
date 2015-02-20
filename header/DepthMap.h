@@ -5,6 +5,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/gpu/gpu.hpp"
 #include "DepthmapKernel.h"
+#include "Visualize.h"
 
 /*!
  * \class Calculates a depth map in a coarse step and then refines it with the optical flow field
@@ -13,6 +14,11 @@
  */
 class DepthMap {
 public:
+
+    void setNumberOfImagesBeingProcessed(int numberOfImagesBeingProessed) {
+        m_numberOfImagesBeingProcessed = numberOfImagesBeingProessed;
+    }
+
     /*!
      * \brief Calculate depth for every pixel depending on the optical flow
      * \param in__inputImage input image that is used to estimate a coarse depth map
@@ -20,25 +26,28 @@ public:
      * \param in__opticalFlowY dense optical flow field in y direction
      * \param out__depthMap resulting fine depth map
      */
-    void DepthMap::calculate(cv::gpu::GpuMat &in__inputFrameGray, cv::gpu::GpuMat &in__inputFrameRGB, cv::gpu::GpuMat &in__opticalFlowX, cv::gpu::GpuMat &in__opticalFlowY, cv::gpu::GpuMat &out__depthMap);
+    void calculate(cv::gpu::GpuMat &in__inputFrameGray, cv::gpu::GpuMat &in__inputFrameRGB, cv::gpu::GpuMat &in__opticalFlowX, cv::gpu::GpuMat &in__opticalFlowY, int in__imageblockSize, cv::gpu::GpuMat &out__depthMap);
+
 private:
     cv::gpu::GpuMat m__currentFrame;
     cv::gpu::GpuMat m__previousFrame;
     cv::gpu::GpuMat m__opticalFlow;
     cv::gpu::GpuMat m__motionHistoryImage;
 
+    int m__numberOfImageblocks = -1;
+
     DepthmapKernel kernel;
 
-    void calcCoarseDepthMap(cv::gpu::GpuMat &in__currentFrameGray, cv::gpu::GpuMat &in__currentFrameRGB, float in__threshold);
+    Visualize m__visualizeModule;
+
+    int number = 1;
+
+    int m_numberOfImagesBeingProcessed = -1;
+
+    void calcCoarseDepthMap(cv::gpu::GpuMat &in__currentFrameGray, cv::gpu::GpuMat &in__currentFrameRGB, int in__imageblockSize, int numberOfImageblocks, float in__threshold, float *outptr__depth);
     void calcFineDepthMap();
-    void printFreeSpace() {
-        size_t free;
-        size_t total;
-        cudaMemGetInfo(&free, &total);
-        double freeMb = ((double)free)/1024.0/1024.0;
-        double totalMb = ((double)total)/1024.0/1024.0;
-        std::cout << freeMb << "MB free, " << totalMb << "MB total" << std::endl;
-    }
+    void drawGpuMat(cv::gpu::GpuMat d__mat, std::string name);
+    void printArray(float *dptr__array, int size, std::string name);
 };
 
 #endif

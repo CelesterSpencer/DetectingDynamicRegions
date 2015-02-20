@@ -1,0 +1,38 @@
+Naming Conventions
+
+//-------------------------------------------------------------------------
+// Variables
+//-------------------------------------------------------------------------
+
+--------------------------HOST SIDE----------------------------------------
+
+&in__		:	input Object 		(won't be altered)
+&out__		:	output Object 		(will be altered)
+&ex__		:	input and output Object (will be altered)
+
+*inptr__	:	input pointer 		(won't be altered)
+*outptr__	:	output pointer		(will be altered)
+*exptr__	:	input pointer		(will be altered)
+
+m__		:	member variable
+ind__		: 	index variable
+temp__		:	temporary /helper variable
+
+-------------------------DEVICE SIDE---------------------------------------
+
+&din__		:	input Object 		(won't be altered)
+&dout__		:	output Object 		(will be altered)
+&dex__		:	input and output Object (will be altered)
+
+*dinptr__	:	input pointer 		(won't be altered)
+*doutptr__	:	output pointer		(will be altered)
+*dexptr__	:	input pointer		(will be altered)
+
+
+//-------------------------------------------------------------------------
+// Methods
+//-------------------------------------------------------------------------
+
+------------------------KERNEL SIDE----------------------------------------
+
+dv__		:	executed on device

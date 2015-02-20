@@ -5,17 +5,17 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/gpu/gpu.hpp"
+#include "Region.h"
 
 class Visualize {
 public:
-    Visualize(std::string windowName) {m__windowName = windowName; }
 
-    void showFlow(cv::gpu::GpuMat &xFlow,cv::gpu::GpuMat &yFlow);
-    void show3DFlow(cv::gpu::GpuMat &flowAngle,cv::gpu::GpuMat &flowMagnitude);
-    void show3DFlow(cv::gpu::GpuMat &flowAngle,cv::gpu::GpuMat &flowMagnitude, std::string windowname);
-    void showRegions(cv::Mat regions);
+    void showFlow(cv::gpu::GpuMat &flowMagnitude, cv::gpu::GpuMat &flowAngle, std::string windowname);
+    void showDepth(float *inptr__depth, int cols, int rows, int numberOfImageBlocks, int blockSize);
+    void showMask(cv::Mat regions, std::string windowName);
+    void showRegions(std::vector<Region> regions, int cols, int rows, std::string windowName);
 private:
-    std::string m__windowName;
+
 };
 
 #endif

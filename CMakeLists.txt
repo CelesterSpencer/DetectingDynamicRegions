@@ -2,15 +2,18 @@ cmake_minimum_required(VERSION 2.8)
 #-------------------------------------------------------------------
 #the name of the executable will be Project
 #-------------------------------------------------------------------
-project(Project)
+project(DetectingDynamicRegions)
+
+#-------------------------------------------------------------------
+#set cmake flags
+#-------------------------------------------------------------------
+SET(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 #-------------------------------------------------------------------
 #set directories
 #-------------------------------------------------------------------
 if (WIN32)
-#set (OpenCV_DIR ${CMAKE_SOURCE_DIR}/../../3rdParty/OpenCV/build)
 set (OpenCV_DIR ${CMAKE_SOURCE_DIR}/../../3rdParty/OpenCV/sources-build)
-set (Eigen_DIR ${CMAKE_SOURCE_DIR}/../../3rdParty/Eigen)
 set (OpticalFlow_DIR ${CMAKE_SOURCE_DIR}/../../3rdParty/OpticalFlow)
 endif (WIN32)
 
@@ -40,7 +43,7 @@ endif(OPENCV_FOUND)
 #find cuda
 #-------------------------------------------------------------------
 FIND_PACKAGE(CUDA REQUIRED)
-set (CUDA_NVCC_FLAGS "-arch=sm_20" CACHE STRING "nvcc flags" FORCE)
+set (CUDA_NVCC_FLAGS "-arch=sm_50" CACHE STRING "nvcc flags" FORCE)
 SET (CUDA_VERBOSE_BUILD ON CACHE BOOL "nvcc verbose" FORCE) 
 #HW capability 1.3
 
@@ -60,14 +63,14 @@ include_directories(${CMAKE_SOURCE_DIR}/kernels)
 #-------------------------------------------------------------------
 #add source and headers
 #-------------------------------------------------------------------
-cuda_add_executable(Project ${SOURCES} ${HEADER})
+cuda_add_executable(DetectingDynamicRegions ${SOURCES} ${HEADER})
 
 
 #-------------------------------------------------------------------
 #link all libraries to the project
 #-------------------------------------------------------------------
-ADD_DEPENDENCIES(Project CudaLib)
-target_link_libraries(Project ${OpenCV_LIBS} CudaLib)
+ADD_DEPENDENCIES(DetectingDynamicRegions CudaLib)
+target_link_libraries(DetectingDynamicRegions ${OpenCV_LIBS} CudaLib)
 
 
 #-------------------------------------------------------------------
